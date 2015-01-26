@@ -110,7 +110,8 @@
 (defun my-find (val ls)
   "Simple helper for finding a value in a list. Must use because the default find
    function was not on the list of approved functions for assignment 1."
-  (cond ((equal val (car ls)) T)
+  (cond ((null ls) nil)
+	((equal val (car ls)) T)
 	((null (cdr ls)) nil)
 	(T (my-find val (cdr ls))))
 )
@@ -133,9 +134,9 @@
 (defun my-count (ls)
   "Returns an integer count of the unique elements in the list provided.
    See my-count-test for example input/output"
-  (if (null ls)
-      0
-      (my-count-actual (remove-duplicate ls)))
+  (cond ((null ls) 0)
+	((my-find (car ls) (cdr ls)) (my-count (cdr ls)))
+	(T (+ 1 (my-count (cdr ls)))))
 )
 
 (defun my-count-actual (ls)
@@ -236,10 +237,13 @@
   (assert (is-set list-one) () "list-one is not a set! It must be a set!")
   (assert (is-set list-two) () "list-two is not a set! It must be a set!")
 
-  ; must be same length to be equivelent
+  ; must be equal to each other or
+  ; must be same length to be equivelent and
   ; also one must be a subset of the other
-  (and (equal (my-count list-one) (my-count list-two))
-       (is-subset list-one list-two))
+  (if (equal list-one list-two)
+      T
+      (and (equal (my-count list-one) (my-count list-two))
+       (is-subset list-one list-two)))
 )
 
 (defun power-set-test ()
@@ -534,6 +538,7 @@
 )
 
 (defun test-all ()
+  "This is self explanatory..."
   (form-pair-test)
   (drop-pair-test)
   (remove-duplicate-test)
