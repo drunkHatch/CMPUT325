@@ -36,18 +36,23 @@
 
 (defun eval-func (definition params)
   (let ((body (caddr definition)))
-    ;(print "eval : ")
+    ;(print "eval-func : ")
     ;(print body)
     ;(print params)
     (apply body params))
 )
 
 (defun eval-statement (statement definitions)
-  (if (atom statement) 
-       statement
-       (let ((name (car statement))
-	     (args (cdr statement)))
-	 (eval-func (find-func name (my-count args) definitions) args)))
+  ;(print "eval-statement")
+  ;(print statement)
+  (if (atom statement)
+       statement ; Atoms are literals and cannot be evaluated, just return them as is
+       (let* ((name (car statement))
+	      (args (cdr statement))
+	      (func-def (find-func name (my-count args) definitions)))
+	 (if (null func-def)
+	     statement ; Assuming literal if there was no function to evaluate
+	     (eval-func func-def (mapcar (lambda (arg) (eval-statement arg definitions)) args)))))
 )
 
 (defun create-definition (program-func)
@@ -59,7 +64,6 @@
 )
 
 (defun interp (args program)
-  ; Let's start by simplifing the arguments
   (let ((defs (load-definitions program)))
     (eval-statement args defs))
 )
@@ -93,13 +97,14 @@
   (print (if (interp '(null ()) nil) 'P13-OK 'P13-error))
   (print (if (not(interp '(atom (3)) nil)) 'P14-OK 'P14-error))
   (print (if (interp '(eq x x) nil) 'P15-OK 'P15-error))
-  ;(print (if (eq (interp '(first (8 5 16)) nil) '8) 'P16-OK 'P16-error))
-  ;(print (if (equal (interp '(rest (8 5 16)) nil) '(5 16)) 'P17-OK 'P17-error))
-  ;(print (if (equal (interp '(cons 6 3) nil) (cons 6 3)) 'P18-OK 'P18-error))
-  ;(print (if (eq (interp '(+ (* 2 2) (* 2 (- (+ 2 (+ 1 (- 7 4))) 2))) nil) '12) 'P19-OK 'P19-error))
-  ;(print (if (interp '(and (> (+ 3 2) (- 4 2)) (or (< 3 (* 2 2))) (not (= 3 2))) nil) 'P20-OK 'P20-error))
-  ;(print (if (not (interp '(or (= 5 (- 4 2)) (and (not (> 2 2)) (< 3 2))) nil)) 'P21-OK 'P21-error))
-  ;(print (if (equal (interp '(if (not (null (first (a c e)))) (if (number (first (a c e))) (first (a c e)) (cons (a c e) d)) (rest (a c e))) nil) (cons '(a c e) 'd)) 'P22-OK 'P22-error))
+  (print (if (eq (interp '(first (8 5 16)) nil) '8) 'P16-OK 'P16-error))
+  (print (if (equal (interp '(rest (8 5 16)) nil) '(5 16)) 'P17-OK 'P17-error))
+  (print (if (equal (interp '(cons 6 3) nil) (cons 6 3)) 'P18-OK 'P18-error))
+  (print (if (eq (interp '(+ (* 2 2) (* 2 (- (+ 2 (+ 1 (- 7 4))) 2))) nil) '12) 'P19-OK 'P19-error))
+  (print (if (interp '(and (> (+ 3 2) (- 4 2)) (or (< 3 (* 2 2)) (not (= 3 2)))) nil) 'P20-OK 'P20-error))
+  (print (if (not (interp '(or (= 5 (- 4 2)) (and (not (> 2 2)) (< 3 2))) nil)) 'P21-OK 'P21-error))
+  (print (if (equal (interp '(if (not (null (first (a c e)))) (if (number (first (a c e))) (first (a c e)) (cons (a c e) d)) (rest (a c e))) nil) (cons '(a c e) 'd)) 'P22-OK 'P22-error))
+
   ;(print (if (eq (interp '(greater 3 5) '((greater x y = (if (> x y) x (if (< x y) y nil))))) '5) 'U1-OK 'U1-error))
   ;(print (if (eq (interp '(square 4) '((square x = (* x x)))) '16) 'U2-OK 'U2-error))
   ;(print (if (eq (interp '(simpleinterest 4 2 5) '((simpleinterest x y z = (* x (* y z))))) '40) 'U3-OK 'U3-error))
