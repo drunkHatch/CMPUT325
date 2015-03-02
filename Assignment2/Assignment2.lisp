@@ -34,29 +34,82 @@
 	(T (find-func name arity (cdr definitions))))
 )
 
-(defun eval-func (definition params)
-  (let ((body (caddr definition)))
-    ;(print "eval-func : ")
-    ;(print body)
-    ;(print params)
-    (apply body params))
+(defun eval-normal-func (func-def args all-definitions stack)
+  (let ((body (caddr func-def))
+	(params (mapcar (lambda (arg) (eval-statement arg all-definitions stack)) args))
+	(isUserDefined (cadddr func-def)))
+    (if isUserDefined
+	(apply body (cons all-definitions params))
+	(apply body params)))
 )
 
-(defun eval-statement (statement definitions)
+(defun eval-special-func (func-def args all-definitions stack)
+  (let ((body (caddr func-def))
+	(params (cons (eval-statement (car args) all-definitions stack) (cdr args))))
+    (eval-statement (apply body params) all-definitions stack)) ; special functions cannot be user defined
+)
+
+(defun get-param-from-symbol (symbol stack)
+  ;(print "getting symbol")
+  ;(print symbol)
+  ;(print stack)
+  (if (null stack)
+      symbol
+      (if (eq (caar stack) symbol)
+	  (cadar stack)
+	  (get-param-from-symbol symbol (cdr stack))))
+)
+
+(defun is-special-func (func-def)
+  ;(print "should not eval ???")
+  ;(print (car func-def))
+  (let ((res (contains (car func-def) '(if and or))))
+    ;(print "res")
+    ;(print res)
+    res)
+)
+
+(defun eval-statement (statement definitions stack)
   ;(print "eval-statement")
   ;(print statement)
   (if (atom statement)
-       statement ; Atoms are literals and cannot be evaluated, just return them as is
+       (get-param-from-symbol statement stack)
        (let* ((name (car statement))
 	      (args (cdr statement))
 	      (func-def (find-func name (my-count args) definitions)))
-	 (if (null func-def)
-	     statement ; Assuming literal if there was no function to evaluate
-	     (eval-func func-def (mapcar (lambda (arg) (eval-statement arg definitions)) args)))))
+	 (cond ((null func-def) statement)
+	       ((is-special-func func-def) (eval-special-func func-def args definitions stack))
+	       (T (eval-normal-func func-def args definitions stack)))))
 )
 
-(defun create-definition (program-func)
-  (list (car program-func) 0 nil)
+(defun extract-params (func)
+  (if (eq (car func) '=)
+      nil
+      (cons (car func) (extract-params (cdr func))))
+)
+
+(defun extract-body (func)
+  (if (eq (car func) '=)
+      (cadr func)
+      (extract-body (cdr func)))
+)
+
+(defun create-sym-map (symbols args)
+  (if (null symbols)
+      nil
+      (cons (list (car symbols) (car args)) (create-sym-map (cdr symbols) (cdr args))))
+)
+
+(defun create-definition (func)
+  (let ((name (car func))
+	(symbols (extract-params (cdr func)))
+	(body (extract-body func)))
+    ;(print "symbols")
+    ;(print symbols)
+    ;(print body)
+    (let ((func-call (lambda (definitions &rest args)
+		       (eval-statement body definitions (create-sym-map symbols args)))))
+      (list name (my-count symbols) func-call T)))
 )
 
 (defun load-definitions (program)
@@ -65,7 +118,9 @@
 
 (defun interp (args program)
   (let ((defs (load-definitions program)))
-    (eval-statement args defs))
+    ;(print "defs")
+    ;(print defs)
+    (eval-statement args defs '()))
 )
 
 (defun my-count (list)
@@ -79,6 +134,14 @@
   (if (null list1)
       list2
       (cons (car list1) (merge-lists (cdr list1) list2)))
+)
+
+(defun contains (val list)
+  (if (null list)
+      nil
+      (if (eq val (car list))
+	  T
+	  (contains val (cdr list))))
 )
 
 (defun ta-tests () 
@@ -105,15 +168,15 @@
   (print (if (not (interp '(or (= 5 (- 4 2)) (and (not (> 2 2)) (< 3 2))) nil)) 'P21-OK 'P21-error))
   (print (if (equal (interp '(if (not (null (first (a c e)))) (if (number (first (a c e))) (first (a c e)) (cons (a c e) d)) (rest (a c e))) nil) (cons '(a c e) 'd)) 'P22-OK 'P22-error))
 
-  ;(print (if (eq (interp '(greater 3 5) '((greater x y = (if (> x y) x (if (< x y) y nil))))) '5) 'U1-OK 'U1-error))
-  ;(print (if (eq (interp '(square 4) '((square x = (* x x)))) '16) 'U2-OK 'U2-error))
-  ;(print (if (eq (interp '(simpleinterest 4 2 5) '((simpleinterest x y z = (* x (* y z))))) '40) 'U3-OK 'U3-error))
-  ;(print (if (interp '(xor true nil) '((xor x y = (if (equal x y) nil true)))) 'U4-OK 'U4-error))
-  ;(print (if (eq (interp '(cadr (5 1 2 7)) '((cadr x = (first (rest x))))) '1) 'U5-OK 'U5-error))
-  ;(print (if (eq (interp '(last (s u p)) '((last x = (if (null (rest x)) (first x) (last (rest x)))))) 'p) 'U6-OK 'U6-error))
-  ;(print (if (equal (interp '(push (1 2 3) 4) '((push x y = (if (null x) (cons y nil) (cons (first x) (push (rest x) y)))))) '(1 2 3 4)) 'U7-OK 'U7-error))
-  ;(print (if (equal (interp '(pop (1 2 3)) '((pop x = (if (atom (rest (rest x))) (cons (first x) nil) (cons (first x)(pop (rest x))))))) '(1 2)) 'U8-OK 'U8-error))
-  ;(print (if (eq (interp '(power 4 2) '((power x y = (if (= y 1) x (power (* x x) (- y 1)))))) '16) 'U9-OK 'U9-error))
-  ;(print (if (eq (interp '(factorial 4) '((factorial x = (if (= x 1) 1 (* x (factorial (- x 1))))))) '24) 'U10-OK 'U10-error))
-  ;(print (if (eq (interp '(divide 24 4) '((divide x y = (div x y 0)) (div x y z = (if (> (* y z) x) (- z 1) (div x y (+ z 1)))))) '6) 'U11-OK 'U11-error))
+  (print (if (eq (interp '(greater 3 5) '((greater x y = (if (> x y) x (if (< x y) y nil)))) ) '5) 'U1-OK 'U1-error))
+  (print (if (eq (interp '(square 4) '((square x = (* x x)))) '16) 'U2-OK 'U2-error))
+  (print (if (eq (interp '(simpleinterest 4 2 5) '((simpleinterest x y z = (* x (* y z))))) '40) 'U3-OK 'U3-error))
+  (print (if (interp '(xor true nil) '((xor x y = (if (equal x y) nil true)))) 'U4-OK 'U4-error))
+  (print (if (eq (interp '(cadr (5 1 2 7)) '((cadr x = (first (rest x))))) '1) 'U5-OK 'U5-error))
+  (print (if (eq (interp '(last (s u p)) '((last x = (if (null (rest x)) (first x) (last (rest x)))))) 'p) 'U6-OK 'U6-error))
+  (print (if (equal (interp '(push (1 2 3) 4) '((push x y = (if (null x) (cons y nil) (cons (first x) (push (rest x) y)))))) '(1 2 3 4)) 'U7-OK 'U7-error))
+  (print (if (equal (interp '(pop (1 2 3)) '((pop x = (if (atom (rest (rest x))) (cons (first x) nil) (cons (first x)(pop (rest x))))))) '(1 2)) 'U8-OK 'U8-error))
+  (print (if (eq (interp '(power 4 2) '((power x y = (if (= y 1) x (power (* x x) (- y 1)))))) '16) 'U9-OK 'U9-error))
+  (print (if (eq (interp '(factorial 4) '((factorial x = (if (= x 1) 1 (* x (factorial (- x 1))))))) '24) 'U10-OK 'U10-error))
+  (print (if (eq (interp '(divide 24 4) '((divide x y = (div x y 0)) (div x y z = (if (> (* y z) x) (- z 1) (div x y (+ z 1)))))) '6) 'U11-OK 'U11-error))
 )
