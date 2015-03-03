@@ -1,4 +1,3 @@
-
 (defun built-in-funcs ()
   (list (list 'if 3 (lambda (cnd s1 s2)(if cnd s1 s2)))
 	'(null 1 null)
@@ -17,18 +16,11 @@
 	'(= 2 =)
 	(list 'and 2 (lambda (a b) (and a b)))
 	(list 'or 2 (lambda (a b) (or a b)))
-	'(not 1 not))
+	'(not 1 not)
+	(list 'assert 2 (lambda (cnd msg) (assert cnd () msg))))
 )
 
 (defun find-func (name arity definitions)
-  ;(print "find-func ... ")
-  ;(print name)
-  ;(print arity)
-  ;(print definitions)
-  ;(print (caar definitions))
-  ;(print (cadar definitions))
-  ;(print (eq name (caar definitions)))
-  ;(print (eq arity (cadar definitions)))
   (cond ((null definitions) nil)
 	((and (eq name (caar definitions)) (eq arity (cadar definitions))) (car definitions))
 	(T (find-func name arity (cdr definitions))))
@@ -50,9 +42,6 @@
 )
 
 (defun get-param-from-symbol (symbol stack)
-  ;(print "getting symbol")
-  ;(print symbol)
-  ;(print stack)
   (if (null stack)
       symbol
       (if (eq (caar stack) symbol)
@@ -61,23 +50,18 @@
 )
 
 (defun is-special-func (func-def)
-  ;(print "should not eval ???")
-  ;(print (car func-def))
-  (let ((res (contains (car func-def) '(if and or))))
-    ;(print "res")
-    ;(print res)
-    res)
+  (contains (car func-def) '(if and or))
 )
 
 (defun eval-statement (statement definitions stack)
-  ;(print "eval-statement")
-  ;(print statement)
   (if (atom statement)
        (get-param-from-symbol statement stack)
        (let* ((name (car statement))
 	      (args (cdr statement))
 	      (func-def (find-func name (my-count args) definitions)))
-	 (cond ((null func-def) statement)
+	 (cond ((null func-def) (mapcar  ; it must be a list, eval everything in it
+				 (lambda (element) (eval-statement element definitions stack)) 
+				 statement))
 	       ((is-special-func func-def) (eval-special-func func-def args definitions stack))
 	       (T (eval-normal-func func-def args definitions stack)))))
 )
@@ -104,9 +88,6 @@
   (let ((name (car func))
 	(symbols (extract-params (cdr func)))
 	(body (extract-body func)))
-    ;(print "symbols")
-    ;(print symbols)
-    ;(print body)
     (let ((func-call (lambda (definitions &rest args)
 		       (eval-statement body definitions (create-sym-map symbols args)))))
       (list name (my-count symbols) func-call T)))
@@ -118,8 +99,6 @@
 
 (defun interp (args program)
   (let ((defs (load-definitions program)))
-    ;(print "defs")
-    ;(print defs)
     (eval-statement args defs '()))
 )
 
@@ -180,4 +159,59 @@
   (assert (eq (interp '(factorial 4) '((factorial x = (if (= x 1) 1 (* x (factorial (- x 1))))))) '24) () 'U10-error)
   (assert (eq (interp '(divide 24 4) '((divide x y = (div x y 0)) (div x y z = (if (> (* y z) x) (- z 1) (div x y (+ z 1)))))) '6) () 'U11-error)
   "All TA tests passed"
+)
+
+(defun eclass-tests ()
+  (assert (equal (interp '(rest (1 2 (3))) nil) '(2 (3))) () "eclass 1 error")
+  (assert (equal (interp '(rest (p 1 2 (3))) nil) '(1 2 (3))) () "eclass 2 error")
+  (assert (equal (interp '(first (rest (1 (2 3)))) nil) '(2 3)) () "eclass 3 error")
+  (assert (equal (interp '(eq (< 3 4) (eq (+ 3 4) (- 2 3))) nil) nil) () "eclass 4 error")
+  (assert (equal (interp '(if (> 1 0) (+ 1 2) (+ 2 3)) nil) 3) () "eclass 5 error")
+  (assert (equal (interp '(if (> 1 0) (if (eq 1 2) 3 4) 5)  nil) 4) () "eclass 6 error")
+  (assert (equal (interp '(cons (first (1 2 3))  (cons a nil)) nil) '(1 a)) () "eclass 7 error")
+  (assert (equal (interp '(and (or true  nil) (> 3 4)) nil) nil) () "eclass 8 error")
+  (assert (equal (interp '(equal (1 2 3) (1 2 3)) nil) T) () "eclass 9 error")
+  "Eclass Tests Passed!"
+)
+
+(defun if-and-or-tests ()
+  (assert (interp '(if (null (first nil)) T (assert nil "If-test 1.0 failed!")) nil) () "If-test 1.1 failed!")
+  (assert (interp '(if (not (null (first nil))) (assert nil "If-test 2.0 failed!") T) nil) () "If-test 2.1 failed!")
+  
+  (assert (interp '(or T (assert nil "Or-test 1.0 failed!")) nil) () "Or-test 1.1 failed!")
+  (assert (interp '(or nil (null (first nil))) nil) () "Or-test 2 failed!")
+  (assert (not (interp '(or nil (not (null (first nil)))) nil)) () "Or-test 3 failed!")
+  (assert (equal (interp '(or nil (first (1 2 3))) nil) 1) () "Or-test 4 failed")
+  
+  (assert (not (interp '(and nil (assert nil "And-test 1.0 failed!")) nil)) () "And-test 1.1 failed!")
+  (assert (interp '(and T (null (first nil))) nil) () "And-test 2 failed!")
+  (assert (not (interp '(and T (not (null (first nil)))) nil)) () "And-test 3 failed!")
+  (assert (equal (interp '(and T (first (1 2 3))) nil) 1) () "And-test 4 failed")
+  "If, And, Or all tests passed!"
+)
+
+(defun complex-prog-tests ()
+  (let ((prg '((contains v l =
+		   (if (null l)
+		       nil
+		       (if (equal (first l) v)
+			   v
+			   (contains v (rest l)))))
+		(remove-dups l =
+		   (if (null l)
+		       nil
+		       (if (contains (first l) (rest l))
+		           (remove-dups (rest l))
+		           (cons (first l) (remove-dups (rest l)))))))))
+    ;(assert (equal (interp '(remove-dups (1 2 3 3 2 1)) prg) '(3 2 1)) () "Complex test 1 failed!")
+    (assert (equal (interp '(remove-dups ((first (1 2 3)) 1 (1 1) (1 1) nil (null (first nil)))) prg) '(1 (1 1) nil T)) () "Complex test 2 failed"))
+  "Complex Program Tests Passed!"
+)
+
+(defun all-tests ()
+  (ta-tests)
+  (eclass-tests)
+  (if-and-or-tests)
+  (complex-prog-tests)
+  "All Tests Passed!"
 )
