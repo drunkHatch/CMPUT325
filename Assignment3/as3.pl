@@ -1,5 +1,13 @@
 
 %
+% Jesse Tucker
+% 1255723
+% March 22nd
+% CMPUT 325
+% Assignment #3
+%
+
+%
 % Question1
 %
 
