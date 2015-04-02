@@ -3,6 +3,7 @@
 % Knowledge base for question 1
 %
 
+:- use_module(library(clpfd)).
 :- dynamic c325/8.
 :- dynamic setup/4.
 
@@ -97,6 +98,192 @@ updateMark([[_, Mark]|Rest], Type, NewMark, [Mark|C]) :-
     updateMark(Rest, Type, NewMark, C).
 
 %
+% Question 2
+%
+
+schedule(TimeList, RoomList) :-
+    findall(I, room(I), Rooms),
+    times(Times),
+    length(Rooms, NumRoomsP),
+    length(Times, NumTimesP),
+
+    NumTimes is NumTimesP - 1,
+    NumRooms is NumRoomsP - 1,
+    
+    sessions(Sessions),
+    length(Sessions, L),
+    length(TimeList, L),
+    length(RoomList, L),
+
+    domain(TimeList, 0, NumTimes),
+    domain(RoomList, 0, NumRooms),
+    
+    notSameTimeCst(TimeList),
+    beforeCst(TimeList),
+    atCst(TimeList, RoomList),
+    exclusiveCst(TimeList, RoomList),
+
+    append(TimeList, RoomList, W),
+    labeling([], W).
+
+
+times([firstDayAm, firstDayPm, secondDayAm, secondDayPm]).
+
+% Not at same time constraint
+
+notSameTimeCst(TimeList) :-
+    findall(J, notAtSameTime(J), ConflictList),
+    length(ConflictList, NumConflicts),
+    repeat(TimeList, NumConflicts, TimeListRepeat),
+    zip(ConflictList, TimeListRepeat, TimesInput),
+    map(TimesInput, getTimes, ScheduledTimes),
+    filter(ScheduledTimes, areUnique, Results),
+    length(Results, L),
+    length(ScheduledTimes, L).
+
+getTimes([Sessions, TimeList], Times) :-
+    getTimes(Sessions, TimeList, Times).
+getTimes(Sessions, TimeList, Times) :-
+    sessions(AllSessions),
+    length(Sessions, NumSessions),
+    repeat(AllSessions, NumSessions, AllSessionRepeat),
+    zip(Sessions, AllSessionRepeat, IndexInput),
+    map(IndexInput, getIndex, Indices),
+    repeat(TimeList, NumSessions, TimeListRepeat),
+    zip(Indices, TimeListRepeat, GetAtInput),
+    map(GetAtInput, getAt, Times).
+
+% before constraint
+
+beforeCst(TimeList) :-
+    findall([K1, K2], before(K1, K2), Before),
+    length(Before, NumBefore),
+    repeat(TimeList, NumBefore, TimeListRepeat),
+    zip(Before, TimeListRepeat, GetTimesInput),
+    map(GetTimesInput, getTimes, AllTimePairs),
+    all(AllTimePairs, isLess).
+
+% at constraint
+
+atCst(TimeList, RoomList) :-
+    findall([L1, L2, L3], at(L1, L2, L3), AtRaw),
+    map(AtRaw, convertAtSymToNum, At),
+    atCst(TimeList, RoomList, At).
+
+atCst(_, _, []).
+atCst(TimeList, RoomList, [[Session, Time, Room]|Rest]) :-
+    atCstTime(TimeList, Session, Time),
+    atCstRoom(RoomList, Session, Room),
+    atCst(TimeList, RoomList, Rest).
+
+atCstTime(TimeList, Session, Time) :-
+    nonvar(Time),
+    sessions(Sessions),
+    getIndex(Session, Sessions, Index),
+    getAt(Index, TimeList, T),
+    T #= Time.
+atCstTime(_, _, Time) :-
+    var(Time).
+
+atCstRoom(RoomList, Session, Room) :-
+    sessions(Sessions),
+    getIndex(Session, Sessions, Index),
+    getAt(Index, RoomList, R),
+    R #= Room.
+atCstRoom(_, _, Room) :-
+    var(Room).
+    
+convertAtSymToNum([Session, TimeSym, RoomSym], [Session, Time, Room]) :-
+    roomSymToIndex(RoomSym, Room),
+    timeSymToIndex(TimeSym, Time).
+
+roomSymToIndex(RoomSym, RoomNum) :-
+    nonvar(RoomSym),
+    findall(R, room(R), Rooms),
+    getIndex(RoomSym, Rooms, RoomNum).
+roomSymToIndex(R, R) :-
+    var(R).
+
+timeSymToIndex(TimeSym, TimeNum) :-
+    nonvar(TimeSym),
+    times(Times),
+    getIndex(TimeSym, Times, TimeNum).
+timeSymToIndex(T, T) :-
+    var(T).
+
+% Exclusive Constraint
+% Basically we cant double book a room
+
+exclusiveCst(TimeList, RoomList) :-
+    zip(TimeList, RoomList, Schedule),
+    areUniquePairs(Schedule).
+
+% various helpers for Question 2
+
+isLess([A, B]) :-
+    isLess(A, B).
+isLess(A, B) :-
+    A #< B.
+
+getAt([Index, List], Res) :-
+    getAt(Index, List, Res).
+getAt(0, [A|_], A).
+getAt(Index, [_|B], Res) :-
+    I is Index - 1,
+    I >= 0,
+    getAt(I, B, Res).
+
+getIndex([Element, List], Result) :-
+    nonvar(Element),
+    getIndex(Element, List, Result).
+getIndex(Element, [Element|_], 0).
+getIndex(Element, [_|B], Num) :-
+    getIndex(Element, B, N),
+    Num is N + 1.
+
+notMemberPair(_, []).
+notMemberPair([A, B], [[C, D]|Rest]) :-
+    (A #= C #\/ B #= D),
+    notMemberPair([A, B], Rest).
+
+notMember(A, [B]) :-
+    A #\= B.
+notMember(A, [B|C]) :-
+    A #\= B,
+    notMember(A, C).
+
+areUnique([]).
+areUnique([_]).
+areUnique([A|B]) :-
+    notMember(A, B),
+    areUnique(B).
+
+areUniquePairs([]).
+areUniquePairs([_]).
+areUniquePairs([A|B]) :-
+     notMemberPair(A, B),
+     areUniquePairs(B).
+
+%
+% Q2 test data
+%    
+
+sessions([a, b, c]).
+
+room(r1).
+room(r2).
+room(r3).
+
+notAtSameTime([a, b, c]).
+
+before(f, e).
+before(c, d).
+
+at(a, _, r1).
+at(b, firstDayPm, r3).
+at(c, secondDayAm, _).
+
+%
 % Helpers
 %
 
@@ -139,3 +326,22 @@ reduce([A], _, A).
 reduce([A|B], Pred, Result) :-
     reduce(B, Pred, R),
     call(Pred, R, A, Result).
+
+rmDup([], []). % cannot remove duplicates from an empty list
+rmDup([A|B], [A|C]) :- % keep A if it is not a member of B
+    \+ member(A, B),
+    !,
+    rmDup(B, C).
+rmDup([A|B], S2) :- % do not keep A if it is a member of B
+    member(A, B),
+    !,
+    rmDup(B, S2).
+
+all([], _).
+all([A|B], Pred) :-
+    call(Pred, A),
+    all(B, Pred).
+
+% checks if a value is a list
+isList([_|_]).
+isList([]).
