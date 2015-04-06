@@ -265,23 +265,32 @@ areUniquePairs([A|B]) :-
      areUniquePairs(B).
 
 %
-% Q2 test data
-%    
+% Question 3
+%
 
-sessions([a, b, c]).
+subsetSum(S, Res) :-
+     length(S, L),
+     length(Selector, L),
+     domain(Selector, 0, 1),
+     zip(S, Selector, MapInput),
+     map(MapInput, subsetSumSelector, FullSet),
+     filter(FullSet, notZero, Set),
+     length(Set, NumSet),
+     \+ NumSet is 0,
+     reduce(Set, add, 0),
+     Res = Set,
+     labeling([], Selector).
 
-room(r1).
-room(r2).
-room(r3).
+subsetSumSelector([Num, S], Num) :-
+     S #= 1.
+subsetSumSelector([_, S], S) :-
+     S #= 0.
 
-notAtSameTime([a, b, c]).
+sortPred(A, B) :-
+     A < B.
 
-before(f, e).
-before(c, d).
-
-at(a, _, r1).
-at(b, firstDayPm, r3).
-at(c, secondDayAm, _).
+notZero(Val) :-
+     \+ Val is 0.
 
 %
 % Helpers
@@ -318,8 +327,13 @@ filter([], _, []).
 filter([A|B], Pred, [A|C]) :-
     call(Pred, A),
     filter(B, Pred, C).
-filter([_|B], Pred, Out) :-
+filter([A|B], Pred, Out) :-
+    \+ call(Pred, A),
     filter(B, Pred, Out).
+
+count(A, Pred, Res) :-
+    filter(A, Pred, B),
+    length(B, Res).
 
 % simple helper to reduce with a predicate
 reduce([A], _, A).
@@ -345,3 +359,20 @@ all([A|B], Pred) :-
 % checks if a value is a list
 isList([_|_]).
 isList([]).
+
+% sorting function from the eClass Forums
+% Adapted to support predicates
+% used the insertion sort for simplicity as data is not expected to be large
+insertSort(List, Pred, Sorted) :-
+    i_sort(List, Pred, [], Sorted).
+
+i_sort([], _, Acc, Acc).
+i_sort([H|T], Pred, Acc, Sorted) :-
+    insert(H, Pred, Acc, NAcc),
+    i_sort(T, Pred, NAcc, Sorted).
+
+insert(X, Pred, [Y|T],[Y|NT]) :- 
+    call(Pred, X, Y),
+    insert(X, Pred, T, NT).
+insert(X, _, [Y|T], [X,Y|T]).
+insert(X, _, [], [X]).
