@@ -1,3 +1,9 @@
+%
+% Jesse Tucker
+% 1255723
+% CMPUT 325 Assignment 4
+%
+
 
 %
 % Knowledge base for question 1
@@ -268,6 +274,15 @@ areUniquePairs([A|B]) :-
 % Question 3
 %
 
+% Those 3 marks for performance aren't worth much. Just brute force it.
+% A smarter way of doing it would be to partition the list into positive and negative numbers
+% choose values from the one list or the other based upon whether the sum is positive or negative
+% each choice is a branch (choose any of the remaining) and include some logic to prevent duplicate
+% calculations. When a list is exhausted and is selected from fail that branch and backtrack. That'sam
+% a modest chunk of work for three marks...
+% instead set the domain to zero or one and if the value is one pick that number, zero does not pick
+% that number. Try all combinations by this mechanism. 2^N calcs performed to get all answers or determine
+% there is no answer. Not good but easy to write.
 subsetSum(S, Res) :-
      length(S, L),
      length(Selector, L),
