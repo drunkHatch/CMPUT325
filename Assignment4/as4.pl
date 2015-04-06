@@ -359,20 +359,3 @@ all([A|B], Pred) :-
 % checks if a value is a list
 isList([_|_]).
 isList([]).
-
-% sorting function from the eClass Forums
-% Adapted to support predicates
-% used the insertion sort for simplicity as data is not expected to be large
-insertSort(List, Pred, Sorted) :-
-    i_sort(List, Pred, [], Sorted).
-
-i_sort([], _, Acc, Acc).
-i_sort([H|T], Pred, Acc, Sorted) :-
-    insert(H, Pred, Acc, NAcc),
-    i_sort(T, Pred, NAcc, Sorted).
-
-insert(X, Pred, [Y|T],[Y|NT]) :- 
-    call(Pred, X, Y),
-    insert(X, Pred, T, NT).
-insert(X, _, [Y|T], [X,Y|T]).
-insert(X, _, [], [X]).
