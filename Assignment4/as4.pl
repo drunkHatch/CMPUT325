@@ -4,7 +4,6 @@
 % CMPUT 325 Assignment 4
 %
 
-
 %
 % Knowledge base for question 1
 %
@@ -107,6 +106,8 @@ updateMark([[_, Mark]|Rest], Type, NewMark, [Mark|C]) :-
 % Question 2
 %
 
+sessions([a, b, c, d, e, f, g, h, i, j, k]).
+
 schedule(TimeList, RoomList) :-
     findall(I, room(I), Rooms),
     times(Times),
@@ -118,20 +119,39 @@ schedule(TimeList, RoomList) :-
     
     sessions(Sessions),
     length(Sessions, L),
-    length(TimeList, L),
-    length(RoomList, L),
+    length(TimeListActual, L),
+    length(RoomListActual, L),
 
-    domain(TimeList, 0, NumTimes),
-    domain(RoomList, 0, NumRooms),
+    domain(TimeListActual, 0, NumTimes),
+    domain(RoomListActual, 0, NumRooms),
     
-    notSameTimeCst(TimeList),
-    beforeCst(TimeList),
-    atCst(TimeList, RoomList),
-    exclusiveCst(TimeList, RoomList),
+    notSameTimeCst(TimeListActual),
+    beforeCst(TimeListActual),
+    atCst(TimeListActual, RoomListActual),
+    exclusiveCst(TimeListActual, RoomListActual),
 
-    append(TimeList, RoomList, W),
-    labeling([], W).
+    append(TimeListActual, RoomListActual, W),
+    labeling([], W),
+    
+    map(TimeListActual, convertTimesToTAFormat, TimeList),
+    map(RoomListActual, convertRoomsToTAFormat, RoomList),
 
+    myPrint(TimeList, RoomList, Sessions).
+
+convertRoomsToTAFormat(RoomNum, Res) :-
+    % rooms are off by 10
+    Res is RoomNum + 10.
+
+convertTimesToTAFormat(TimeNum, Res) :-
+    % times are off by 1
+    Res is TimeNum + 1.
+
+myPrint([], [], []).
+myPrint([T|L],[W|R],[List|Rest]):-
+    write('session '), write(List), write(' at time '),
+    write(T), write(' in room '),
+    write(W), write('\n'),
+    myPrint(L,R,Rest).
 
 times([firstDayAm, firstDayPm, secondDayAm, secondDayPm]).
 
@@ -283,7 +303,52 @@ areUniquePairs([A|B]) :-
 % instead set the domain to zero or one and if the value is one pick that number, zero does not pick
 % that number. Try all combinations by this mechanism. 2^N calcs performed to get all answers or determine
 % there is no answer. Not good but easy to write.
+
+p1(R):-cputime1,!,nl,t1(R),statistics(runtime,[_,0]).
+p2(R):-cputime2,!,nl,t2(R),statistics(runtime,[_,0]).
+p3(R):-cputime3,!,nl,t3(R),statistics(runtime,[_,0]).
+p4(R):-cputime4,!,nl,t4(R),statistics(runtime,[_,0]).
+p5(R):-cputime5,!,nl,t5(R),statistics(runtime,[_,0]).
+p6(R):-cputime6,!,nl,t6(R),statistics(runtime,[_,0]).
+p7(R):-cputime7,!,nl,t7(R),statistics(runtime,[_,0]).
+p8(R):-cputime8,!,nl,t8(R),statistics(runtime,[_,0]).
+p9(R):-cputime9,!,nl,t9(R),statistics(runtime,[_,0]).
+ 
+t1(R) :- subsetSum([],R).
+t2(R) :- subsetSum([-3,1,2,3],R).
+t3(R) :- subsetSum([-1,2,3,5],R).
+t4(R) :- subsetSum([-1,2,2,3,-1,-4,-4,8,-5,-2],R).
+t5(R):-subsetSum([-3,1,2,-2,2,2,3,1,14,-15,20,-21,1,5,4,-1,-9,4,-4,9],R).
+t6(R):-subsetSum([-3,1,2,-2,2,2,3,1,14,-15,20,-21,1,5,4,-1,-9,4,-4,9,-10],R).
+t7(R):-subsetSum([-3,1,2,-2,2,2,3,1,14,-15,20,-21,1,5,4,-1,-9,4,-4,9,-10,9],R).
+t8(R):-subsetSum([-3,1,2,1,2,2,-3,14,-15,20,-21,1,5,4,-1,-9,4,-4,9,-9,9,-15,8],R).
+t9(R):-subsetSum([3,1,2,1,2,2,14,20,-520,1,5,4,6,9,4,4,9,9,8,9,23,43,56,12,34,32,45,54,90],R).
+
+cputime1:- t1(W),!,statistics(runtime,[_,X]),T is X/1000,write('run time: '),write(T), write(' sec.').
+cputime1 :- statistics(runtime,[_,X]),T is X/1000,write('run time: '),write(T), write(' sec.').
+cputime2:-t2(W),!,statistics(runtime,[_,X]),T is X/1000,write('run time: '),write(T), write(' sec.').
+cputime2 :- statistics(runtime,[_,X]),T is X/1000,write('run time: '),write(T), write(' sec.').
+cputime3 :-t3(W),!,statistics(runtime,[_,X]),T is X/1000,write('run time: '),write(T), write(' sec.').
+cputime3 :- statistics(runtime,[_,X]),T is X/1000,write('run time: '),write(T), write(' sec.').
+cputime4 :-t4(W),!,statistics(runtime,[_,X]),T is X/1000,write('run time: '),write(T), write(' sec.').
+cputime4 :- statistics(runtime,[_,X]),T is X/1000,write('run time: '),write(T), write(' sec.').
+cputime5 :-t5(W),!,statistics(runtime,[_,X]),T is X/1000,write('run time: '),write(T), write(' sec.').
+cputime5 :- statistics(runtime,[_,X]),T is X/1000,write('run time: '),write(T), write(' sec.').
+cputime6 :-t6(W),!,statistics(runtime,[_,X]),T is X/1000,write('run time: '),write(T), write(' sec.').
+cputime6 :- statistics(runtime,[_,X]),T is X/1000,write('run time: '),write(T), write(' sec.').
+cputime7 :-t7(W),!,statistics(runtime,[_,X]),T is X/1000,write('run time: '),write(T), write(' sec.').
+cputime7 :- statistics(runtime,[_,X]),T is X/1000,write('run time: '),write(T), write(' sec.').
+cputime8 :-t8(W),!,statistics(runtime,[_,X]),T is X/1000,write('run time: '),write(T), write(' sec.').
+cputime8 :- statistics(runtime,[_,X]),T is X/1000,write('run time: '),write(T), write(' sec.').
+cputime9 :-t9(W),!,statistics(runtime,[_,X]),T is X/1000,write('run time: '),write(T), write(' sec.').
+cputime9 :- statistics(runtime,[_,X]),T is X/1000,write('run time: '),write(T), write(' sec.').
+
 subsetSum(S, Res) :-
+     findall(B, subsetSum_h(S, B), AllRes),
+     rmDup(AllRes, ResNoDup),
+     member(Res, ResNoDup).
+
+subsetSum_h(S, Res) :-
      length(S, L),
      length(Selector, L),
      domain(Selector, 0, 1),
@@ -293,8 +358,8 @@ subsetSum(S, Res) :-
      length(Set, NumSet),
      \+ NumSet is 0,
      reduce(Set, add, 0),
-     Res = Set,
-     labeling([], Selector).
+     labeling([], Selector),
+     insertSort(Set, sortPred, Res).
 
 subsetSumSelector([Num, S], Num) :-
      S #= 1.
@@ -302,7 +367,7 @@ subsetSumSelector([_, S], S) :-
      S #= 0.
 
 sortPred(A, B) :-
-     A < B.
+     A > B.
 
 notZero(Val) :-
      \+ Val is 0.
@@ -374,3 +439,21 @@ all([A|B], Pred) :-
 % checks if a value is a list
 isList([_|_]).
 isList([]).
+
+% sorting function from the eClass Forums
+% Adapted to support predicates
+% used the insertion sort for simplicity as data is not expected to be large
+insertSort(List, Pred, Sorted) :-
+    i_sort(List, Pred, [], Sorted).
+
+i_sort([], _, Acc, Acc).
+i_sort([H|T], Pred, Acc, Sorted) :-
+    insert(H, Pred, Acc, NAcc),
+    i_sort(T, Pred, NAcc, Sorted).
+
+insert(X, Pred, [Y|T],[Y|NT]) :- 
+    call(Pred, X, Y),
+    insert(X, Pred, T, NT).
+insert(X, Pred, [Y|T], [X,Y|T]) :-
+    \+ call(Pred, X, Y).
+insert(X, _, [], [X]).
