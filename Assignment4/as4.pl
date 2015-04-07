@@ -249,7 +249,7 @@ getIndex(Element, [_|B], Num) :-
 
 notMemberPair(_, []).
 notMemberPair([A, B], [[C, D]|Rest]) :-
-    (A #= C #\/ B #= D),
+    (A #\= C #\/ B #\= D),
     notMemberPair([A, B], Rest).
 
 notMember(A, [B]) :-
